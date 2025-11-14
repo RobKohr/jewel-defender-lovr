@@ -1,0 +1,7 @@
+{
+    "Lua.workspace.library": [
+        "${addons}/lovr/module/library"
+    ],
+    "Lua.runtime.version": "LuaJIT",
+    "Lua.workspace.checkThirdParty": false
+}
