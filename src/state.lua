@@ -12,12 +12,10 @@ local states_by_name = {
 -- default game state to MenuState
 local currentState = MenuState
 
--- Function to get the current game state
 function State.GetCurrentState()
   return currentState
 end
 
--- Function to set the current game state
 function State.SetCurrentState(newStateName)
   currentState = states_by_name[newStateName]
   currentState.init()

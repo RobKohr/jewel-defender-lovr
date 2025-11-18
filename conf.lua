@@ -1,13 +1,12 @@
--- Load app settings module to access values
 local AppSettings = require("app_settings")
 
 function lovr.conf(t)
-  -- Window configuration - set to nil to disable automatic opening
-  -- We'll open it manually in lovr.load to control fullscreen
+  -- Set to nil to disable automatic opening - we'll open it manually in lovr.load to control fullscreen
   t.window = nil
   
   -- Graphics settings
-  t.graphics.antialias = true
+  t.graphics.antialias = false  -- Disable for higher FPS (enable for better quality)
+  t.graphics.vsync = false  -- Disable vsync to see actual FPS
   
   -- Headset settings (disabled for desktop mode)
   t.headset.connect = false

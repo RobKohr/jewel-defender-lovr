@@ -21,6 +21,7 @@ end
 
 function lovr.draw(pass)
   State.GetCurrentState().draw(pass)
+  Utils.showFPS(pass)
   return false
 end
 

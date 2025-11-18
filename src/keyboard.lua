@@ -1,3 +1,4 @@
+local Utils = require("src.utils")
 local Keyboard = {}
 -- mappings can point to multiple keys or buttons, and key combinations
 local default_keyboard_mappings = {
@@ -20,7 +21,19 @@ local default_keyboard_mappings = {
             {'lalt', 'x'},
             {'ralt', 'x'},
         },
-    }
+    },
+    toggle_fullscreen = {
+        keys = {
+            {'f11'},
+            -- command - f or control f on windows
+            {'lgui', 'f'},
+            {'rgui', 'f'},
+            {'lctrl', 'f'},
+            {'rctrl', 'f'},
+            {'lalt', 'return'},
+            {'ralt', 'return'},
+        },
+    },
 }
 
 local keyboard_mappings = default_keyboard_mappings
@@ -59,10 +72,18 @@ function Keyboard.getActionFromKeyboardPress(pressed_key, scancode, isrepeat)
     return nil
 end
 
+-- returns true if an action was handled, false otherwise. if true, the action is not passed to the current state
 function Keyboard.handleGlobalActions(action)
     if action == "quit" then
         lovr.event.quit()
+        return true
     end
+    if action == "toggle_fullscreen" then
+        -- LÖVR doesn't support changing window properties after the window is created.
+        -- Fullscreen toggling is not possible without restarting the app (which would lose game state).
+        print("Fullscreen toggle not supported - window properties can only be set at startup.")
+        return true
+    end 
     return false
 end
 
