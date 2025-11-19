@@ -24,6 +24,13 @@ local menu_options = {
   "Quit"
 }
 
+local menu_item_positions = {
+  {x = MENU_START_X, y = MENU_START_Y},
+  {x = MENU_START_X, y = MENU_START_Y + MENU_ITEM_SPACING},
+  {x = MENU_START_X, y = MENU_START_Y + MENU_ITEM_SPACING * 2},
+  {x = MENU_START_X, y = MENU_START_Y + MENU_ITEM_SPACING * 3},
+}
+
 function MenuState.init()
   background_image = lovr.data.newImage('assets/images/main_menu_background.jpg')
   background_texture = lovr.graphics.newTexture(background_image, {})
@@ -86,14 +93,13 @@ function MenuState.draw(pass)
   local aspect = viewport_width / viewport_height
   
   for i, option in ipairs(menu_options) do
-    local y_pos = MENU_START_Y + ((i - 1) * MENU_ITEM_SPACING)
+    local position = menu_item_positions[i]
     local is_hovered = (hovered_index == i)
-    
-    if is_hovered then
-      Utils.drawHUDText(pass, option, MENU_START_X, y_pos + MENU_SHADOW_OFFSET, MENU_TEXT_SIZE, 'left', 'top', menu_font, nil)
-    else
-      Utils.drawHUDText(pass, option, MENU_START_X, y_pos, MENU_TEXT_SIZE, 'left', 'top', menu_font, MENU_SHADOW_OFFSET)
-    end
+    local show_shadow = not is_hovered
+    local shadow_offset = show_shadow and MENU_SHADOW_OFFSET or nil
+    local y_pos = position.y
+
+    Utils.drawHUDText(pass, option, position.x, y_pos, MENU_TEXT_SIZE, 'left', 'top', menu_font, shadow_offset)
   end
   
   local mouse_x, mouse_y, _ = Mouse.getNormalizedPosition()
