@@ -1,118 +1,105 @@
 local MenuState = {}
 local Utils = require("src.utils")
+local Mouse = require("src.mouse")
 
 local background_texture = nil
 local background_image = nil
 local menu_font = nil
+local hovered_index = nil
 
--- Original image coordinates (pixels)
-local ORIGINAL_MENU_X = 205
-local ORIGINAL_MENU_Y = 826
-local ORIGINAL_FONT_SIZE = 80  -- 80 point font
-local SHADOW_OFFSET_PX = 5  -- 5 pixel drop shadow
+-- HUD text sizing (normalized units)
+local MENU_TEXT_SIZE = 0.136
+local MENU_ITEM_SPACING = 0.15
+local MENU_SHADOW_OFFSET = 0.0136
+
+-- Menu starting position (normalized units)
+local MENU_START_X = -0.867
+local MENU_START_Y = -0.232
 
 -- Menu options
 local menu_options = {
-  "New Game",
+  "Start Game",
   "Options",
   "Extras",
   "Quit"
 }
 
--- Scaling function: converts pixels to LÖVR coordinate units
-local function scalePixel(value, scale_factor)
-  return value * scale_factor
-end
-
--- Get vertical scale factor based on viewport and image dimensions
-local function getVerticalScale(viewport_height, image_height)
-  -- LÖVR's default viewport spans approximately -1 to 1 in Y (2 units)
-  -- We need to map image pixels to this coordinate system
-  return 2.0 / image_height
-end
-
--- Get horizontal scale factor
-local function getHorizontalScale(viewport_width, viewport_height, image_width)
-  -- LÖVR's default viewport spans approximately -aspect to aspect in X
-  local aspect = viewport_width / viewport_height
-  return (2.0 * aspect) / image_width
-end
-
 function MenuState.init()
-  -- Load background image for HUD
   background_image = lovr.data.newImage('assets/images/main_menu_background.jpg')
   background_texture = lovr.graphics.newTexture(background_image, {})
-  
-  -- Load Montserrat ExtraBold Italic font for HUD text
-  -- Parameters: font file, pixel size, pixel density (4 for high quality)
   menu_font = lovr.graphics.newFont('assets/fonts/Montserrat-ExtraBoldItalic.ttf', 80, 4)
 end
 
+-- Check if point is within menu item bounds
+-- norm_x: aspect-ratio coords, norm_y: normalized coords where 1 is top, -1 is bottom (menu coordinate system)
+local function isPointOverMenuItem(norm_x, norm_y, item_index, aspect)
+  local y_pos = MENU_START_Y + ((item_index - 1) * MENU_ITEM_SPACING)
+  local text_height = MENU_TEXT_SIZE
+  local text_width = #menu_options[item_index] * MENU_TEXT_SIZE * 0.6
+  
+  local item_left = MENU_START_X * aspect
+  local item_right = (MENU_START_X + text_width) * aspect
+  -- Menu items use coordinate system where 1 is top, -1 is bottom
+  -- With valign='top', y_pos is the top of text, text extends downward (toward -1)
+  local item_top = y_pos
+  local item_bottom = y_pos - text_height
+  
+  return norm_x >= item_left and norm_x <= item_right and
+         norm_y <= item_top and norm_y >= item_bottom
+end
+
+function MenuState.updateHover(norm_x, norm_y, aspect)
+  hovered_index = nil
+  for i = 1, #menu_options do
+    if isPointOverMenuItem(norm_x, norm_y, i, aspect) then
+      hovered_index = i
+      break
+    end
+  end
+end
+
 function MenuState.update(dt)
+  local mouse_x, mouse_y, aspect = Mouse.getNormalizedPosition()
+  if mouse_x and mouse_y and aspect then
+    -- Mouse returns Y where -1 is top, 1 is bottom
+    -- Menu items use Y where 1 is top, -1 is bottom
+    -- So flip Y to match menu coordinate system
+    MenuState.updateHover(mouse_x * aspect, -mouse_y, aspect)
+  end
+end
+
+local function drawDebugCircle(pass, x, y, viewport_height)
+  local aspect = Utils.setupHUD(pass)
+  local circle_size = (25 / viewport_height) * 2
+  
+  pass:setColor(1, 0, 0, 1)
+  pass:circle(x * aspect, y, 0, circle_size, 0, 1, 0, 0, 'fill')
+  pass:setColor(1, 1, 1, 1)
+  
+  pass:pop()
 end
 
 function MenuState.draw(pass)
-  -- Draw HUD background (fixed on screen, behind text)
   Utils.drawHUDBackground(pass, background_texture)
   
-  -- Draw HUD text (fixed on screen) with Montserrat font and shadow
-  Utils.drawHUDText(pass, "Networked Game", -1, -1, 0.05, 'left', 'top', menu_font, true)
-  Utils.drawHUDText(pass, "Press ENTER to start", 0, 0.5, 0.05, 'center', 'top', menu_font, true)
-end
-
-function MenuState.drawBackup(pass)
-  -- Draw background
-  pass:fill(background_texture)
-  
-  if not background_image then return end
-  
-  -- Get dimensions
   local viewport_width, viewport_height = pass:getDimensions()
-  local image_width, image_height = background_image:getDimensions()
+  local aspect = viewport_width / viewport_height
   
-  -- Calculate scale factors
-  local vertical_scale = getVerticalScale(viewport_height, image_height)
-  local horizontal_scale = getHorizontalScale(viewport_width, viewport_height, image_width)
-  
-  -- Calculate scaled font size (80pt scaled to match vertical scale)
-  local scaled_font_size = scalePixel(ORIGINAL_FONT_SIZE, vertical_scale)
-  
-  -- Calculate menu start position in LÖVR coordinates
-  -- Convert from image coordinates (top-left origin) to LÖVR coordinates (center origin, Y up)
-  -- Image: (0,0) is top-left, (width, height) is bottom-right
-  -- LÖVR: center is (0, 0, -2), Y up, X right
-  local menu_x_px = ORIGINAL_MENU_X - (image_width / 2)  -- Convert to center-relative
-  local menu_y_px = (image_height / 2) - ORIGINAL_MENU_Y  -- Flip Y and convert to center-relative
-  
-  local menu_x = scalePixel(menu_x_px, horizontal_scale)
-  local menu_y = scalePixel(menu_y_px, vertical_scale)
-  local menu_z = -2  -- Same Z as working text
-  
-  -- Calculate shadow offset
-  local shadow_offset_y = scalePixel(SHADOW_OFFSET_PX, vertical_scale)
-  
-  -- Set font (use default if menu_font is nil)
-  if menu_font then
-    pass:setFont(menu_font)
-  end
-  
-  -- Draw menu options
-  local line_height = scaled_font_size * 1.2  -- Spacing between lines
   for i, option in ipairs(menu_options) do
-    local y_offset = (i - 1) * line_height
-    local text_y = menu_y - y_offset
+    local y_pos = MENU_START_Y + ((i - 1) * MENU_ITEM_SPACING)
+    local is_hovered = (hovered_index == i)
     
-    -- Draw drop shadow (gray, offset down)
-    pass:setColor(0.5, 0.5, 0.5)  -- Solid gray
-    pass:text(option, menu_x, text_y - shadow_offset_y, menu_z, scaled_font_size, 0, 1, 0, 0, 0, 'left', 'top')
-    
-    -- Draw main text (white)
-    pass:setColor(1, 1, 1)  -- White
-    pass:text(option, menu_x, text_y, menu_z, scaled_font_size, 0, 1, 0, 0, 0, 'left', 'top')
+    if is_hovered then
+      Utils.drawHUDText(pass, option, MENU_START_X, y_pos + MENU_SHADOW_OFFSET, MENU_TEXT_SIZE, 'left', 'top', menu_font, nil)
+    else
+      Utils.drawHUDText(pass, option, MENU_START_X, y_pos, MENU_TEXT_SIZE, 'left', 'top', menu_font, MENU_SHADOW_OFFSET)
+    end
   end
   
-  -- Reset font to default
-  pass:setFont(nil)
+  local mouse_x, mouse_y, _ = Mouse.getNormalizedPosition()
+  if mouse_x and mouse_y then
+    drawDebugCircle(pass, mouse_x, mouse_y, viewport_height)
+  end
 end
 
 function MenuState.cleanup()
@@ -120,6 +107,8 @@ end
 
 function MenuState.onKeyPressed(key, scancode, isrepeat, action)
 end
+
+
 
 
 

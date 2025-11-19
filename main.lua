@@ -32,3 +32,10 @@ function lovr.keypressed(key, scancode, isrepeat)
   end
 end
 
+function lovr.mousemoved(x, y, dx, dy)
+  local currentState = State.GetCurrentState()
+  if currentState.onMouseMoved then
+    currentState.onMouseMoved(x, y)
+  end
+end
+
