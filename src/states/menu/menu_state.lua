@@ -37,28 +37,12 @@ function MenuState.init()
   menu_font = lovr.graphics.newFont('assets/fonts/Montserrat-ExtraBoldItalic.ttf', 80, 4)
 end
 
--- Check if point is within menu item bounds
--- norm_x: aspect-ratio coords, norm_y: normalized coords where 1 is top, -1 is bottom (menu coordinate system)
-local function isPointOverMenuItem(norm_x, norm_y, item_index, aspect)
-  local y_pos = MENU_START_Y + ((item_index - 1) * MENU_ITEM_SPACING)
-  local text_height = MENU_TEXT_SIZE
-  local text_width = #menu_options[item_index] * MENU_TEXT_SIZE * 0.6
-  
-  local item_left = MENU_START_X * aspect
-  local item_right = (MENU_START_X + text_width) * aspect
-  -- Menu items use coordinate system where 1 is top, -1 is bottom
-  -- With valign='top', y_pos is the top of text, text extends downward (toward -1)
-  local item_top = y_pos
-  local item_bottom = y_pos - text_height
-  
-  return norm_x >= item_left and norm_x <= item_right and
-         norm_y <= item_top and norm_y >= item_bottom
-end
 
-function MenuState.updateHover(norm_x, norm_y, aspect)
+function MenuState.updateHover(mouse_x, mouse_y, aspect)
   hovered_index = nil
-  for i = 1, #menu_options do
-    if isPointOverMenuItem(norm_x, norm_y, i, aspect) then
+  for i, position in ipairs(menu_item_positions) do
+    if mouse_x > position.x and mouse_x < position.x + MENU_TEXT_SIZE and
+       mouse_y > position.y and mouse_y < position.y + MENU_TEXT_SIZE then
       hovered_index = i
       break
     end
@@ -68,10 +52,7 @@ end
 function MenuState.update(dt)
   local mouse_x, mouse_y, aspect = Mouse.getNormalizedPosition()
   if mouse_x and mouse_y and aspect then
-    -- Mouse returns Y where -1 is top, 1 is bottom
-    -- Menu items use Y where 1 is top, -1 is bottom
-    -- So flip Y to match menu coordinate system
-    MenuState.updateHover(mouse_x * aspect, -mouse_y, aspect)
+    MenuState.updateHover(mouse_x * aspect, mouse_y, aspect)
   end
 end
 
