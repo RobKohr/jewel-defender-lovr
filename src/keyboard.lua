@@ -63,7 +63,7 @@ function Keyboard.getActionFromKeyboardPress(pressed_key, scancode, isrepeat)
                     end
                     if all_keys_down then
                         print("Keyboard combination mapped to action: " .. action)
-                        return action
+                return action
                     end
                 end
             end

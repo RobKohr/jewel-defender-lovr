@@ -39,22 +39,25 @@ local function getHorizontalScale(viewport_width, viewport_height, image_width)
 end
 
 function MenuState.init()
-  -- Load background image to get dimensions
-  -- background_image = lovr.data.newImage('assets/images/main_menu_background.jpg')
-  -- background_texture = lovr.graphics.newTexture(background_image, {})
+  -- Load background image for HUD
+  background_image = lovr.data.newImage('assets/images/main_menu_background.jpg')
+  background_texture = lovr.graphics.newTexture(background_image, {})
   
-  -- Use default font for testing (font loading commented out)
-  -- menu_font = lovr.graphics.newFont('assets/fonts/Montserrat-ExtraBoldItalic.ttf', 80, 4)
-  menu_font = nil  -- Use default font
+  -- Load Montserrat ExtraBold Italic font for HUD text
+  -- Parameters: font file, pixel size, pixel density (4 for high quality)
+  menu_font = lovr.graphics.newFont('assets/fonts/Montserrat-ExtraBoldItalic.ttf', 80, 4)
 end
 
 function MenuState.update(dt)
 end
 
 function MenuState.draw(pass)
-  -- Draw HUD text (fixed on screen)
-  Utils.drawHUDText(pass, "Networked Game", -1, -1, 0.05, 'left', 'top')
-  Utils.drawHUDText(pass, "Press ENTER to start", 0, 0.5, 0.05, 'center', 'top')
+  -- Draw HUD background (fixed on screen, behind text)
+  Utils.drawHUDBackground(pass, background_texture)
+  
+  -- Draw HUD text (fixed on screen) with Montserrat font and shadow
+  Utils.drawHUDText(pass, "Networked Game", -1, -1, 0.05, 'left', 'top', menu_font, true)
+  Utils.drawHUDText(pass, "Press ENTER to start", 0, 0.5, 0.05, 'center', 'top', menu_font, true)
 end
 
 function MenuState.drawBackup(pass)
