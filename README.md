@@ -1,4 +1,4 @@
 # jewel-defender-lovr
 
-Copyright Neverall Inc 2025
+Copyright 2025 Robert Kohr 
 
