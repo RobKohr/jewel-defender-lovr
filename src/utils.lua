@@ -21,8 +21,8 @@ end
 function Utils.turnOffFullscreen()
   if not lovr.system.isWindowOpen() then
     lovr.system.openWindow({
-      width = 1280,
-      height = 720,
+      width = 800,
+      height = 600,
       fullscreen = false,
       resizable = true,
       title = windowTitle,

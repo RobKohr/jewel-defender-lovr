@@ -1,5 +1,5 @@
 _G = {
-  fullscreen = true,
+  fullscreen = false,
 }
 
 local State = require("src.state")
