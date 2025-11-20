@@ -1,5 +1,10 @@
 local Utils = {}
 local AppSettings = require("app_settings")
+local Mouse = require("src.mouse")
+
+-- Cache frequently used functions and values
+local getNormalizedPosition = Mouse.getNormalizedPosition
+local windowTitle = AppSettings.window.title
 
 function Utils.turnOnFullscreen()
   if not lovr.system.isWindowOpen() then
@@ -8,7 +13,7 @@ function Utils.turnOnFullscreen()
       height = 0,
       fullscreen = true,
       resizable = true,
-      title = AppSettings.window.title,
+      title = windowTitle,
     })
   end
 end
@@ -20,7 +25,7 @@ function Utils.turnOffFullscreen()
       height = 720,
       fullscreen = false,
       resizable = true,
-      title = AppSettings.window.title,
+      title = windowTitle,
     })
   end
 end
@@ -76,6 +81,31 @@ function Utils.drawHUDText(pass, text, x, y, size, halign, valign, font, shadow_
   end
   
   pass:pop()
+end
+
+local function drawDebugCircle(pass, x, y, viewport_height)
+  local aspect = Utils.setupHUD(pass)
+  local circle_size = (25 / viewport_height) * 2
+  local mouse_x, mouse_y = getNormalizedPosition()
+
+  pass:setColor(1, 0, 0, 1)
+  pass:circle(mouse_x*aspect, mouse_y, 0, circle_size, 0, 1, 0, 0, 'fill')
+  pass:setColor(1, 1, 1, 1)
+  
+  pass:pop()
+end
+
+function Utils.debugMousePosition(pass, font)
+  local MENU_TEXT_SIZE = 0.136
+  local viewport_width, viewport_height = pass:getDimensions()
+  local aspect = viewport_width / viewport_height
+  local mouse_x, mouse_y, _ = getNormalizedPosition()
+  if mouse_x and mouse_y then
+    drawDebugCircle(pass, mouse_x*aspect, mouse_y, viewport_height)  
+    -- Display mouse coordinates at bottom of screen
+    local coord_text = string.format("(%.2f, %.2f, %.2f)", mouse_x, mouse_y, aspect)
+    Utils.drawHUDText(pass, coord_text, 0, 0, MENU_TEXT_SIZE, 'center', 'bottom', font, nil)
+  end
 end
 
 return Utils

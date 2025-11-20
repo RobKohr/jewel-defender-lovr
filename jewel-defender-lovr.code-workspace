@@ -1,0 +1,26 @@
+{
+	"folders": [
+		{
+			"path": "."
+		},
+		{
+			"path": "../lovr-docs"
+		},
+		{
+			"path": "../old-jewel-defender"
+		},
+		{
+			"path": "../jewel-defender-3d"
+		},
+		{
+			"path": "../../Library/Application Support/LOVR/default/output"
+		},
+		{
+			"path": "../speed-test-lovr"
+		},
+		{
+			"path": "../speed-test-c-raylib"
+		}
+	],
+	"settings": {}
+}
