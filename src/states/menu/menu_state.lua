@@ -24,7 +24,8 @@ local MENU_START_Y = -0.232
 
 
 local function startGame()
-  print("Start Game")
+  local State = require("src.state")
+  State.SetCurrentState("GameState")
 end
 local function options()
   print("Options")

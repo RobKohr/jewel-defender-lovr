@@ -38,4 +38,3 @@ function lovr.mousemoved(x, y, dx, dy)
     currentState.onMouseMoved(x, y)
   end
 end
-

@@ -5,7 +5,7 @@ function lovr.conf(t)
   t.window = nil
   
   -- Graphics settings
-  t.graphics.antialias = false  -- Disable for higher FPS (enable for better quality)
+  t.graphics.antialias = true  -- Enable antialiasing for better quality
   t.graphics.vsync = true  -- Enable vsync
   
   -- Headset settings (disabled for desktop mode)
