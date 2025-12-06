@@ -1,5 +1,19 @@
 local GameState = {}
 
+-- localize functions and constants that are used in this file (don't add things that aren't used in this file)
+-- localized functions
+local rad = math.rad
+local tan = math.tan
+local atan = math.atan
+local sin = math.sin
+local cos = math.cos
+local max = math.max
+local newMat4 = lovr.math.newMat4
+local newVec3 = lovr.math.newVec3
+-- localized constants
+local PI = math.pi
+
+
 -- Grid configuration
 local GRID_SIZE = 6  -- Each grid square is 6x6 units
 local GRID_WIDTH = 24  -- 24 grid squares wide
@@ -20,7 +34,7 @@ local BROWN = {0.4, 0.25, 0.15}      -- Brown sides/bottom
 local SHOW_GRID_LINES = true
 
 -- Camera configuration
-local CAMERA_ANGLE = math.rad(50)  -- 67.5 degrees in radians
+local CAMERA_ANGLE = rad(50)  -- 50 degrees in radians
 local camera_distance = 0
 local camera_position = {0, 0, 0}
 local view_matrix = nil
@@ -32,50 +46,23 @@ local camera_pos = nil
 local player_tank_model = nil
 local lighting_shader = nil
 
+
+local blender_to_lovr_rotation = rad(-90) -- convert blender rotation to lovr rotation
+
 function GameState.init()
   -- Set sky blue background
   lovr.graphics.setBackgroundColor(SKY_BLUE[1], SKY_BLUE[2], SKY_BLUE[3])
   
   -- Initialize view matrix (reused each frame for better performance)
-  view_matrix = lovr.math.newMat4()
+  view_matrix = newMat4()
   
   -- Initialize permanent vectors (must use newVec3, not vec3, for module-level variables)
-  look_at = lovr.math.newVec3(0, PLATE_HEIGHT, 0)
-  up = lovr.math.newVec3(0, 1, 0)
-  camera_pos = lovr.math.newVec3(0, 0, 0)
+  look_at = newVec3(0, PLATE_HEIGHT, 0)
+  up = newVec3(0, 1, 0)
+  camera_pos = newVec3(0, 0, 0)
   
-  -- Create a simple lighting shader with directional light
-  lighting_shader = lovr.graphics.newShader([[
-    vec4 lovrmain() {
-      return DefaultPosition;
-    }
-  ]], [[
-    vec4 lovrmain() {
-      // Get the base color from the texture/material
-      vec4 baseColor = Color * getPixel(ColorTexture, UV);
-      
-      Surface surface;
-      initSurface(surface);
-      
-      // Ambient lighting (base illumination) - brighter to preserve colors
-      vec3 ambient = vec3(0.6, 0.6, 0.6);
-      
-      // Directional light coming from above and slightly to the side
-      vec3 lightDirection = normalize(vec3(0.5, 1.0, 0.3));
-      vec4 lightColorAndBrightness = vec4(1.0, 1.0, 1.0, 2.0);
-      float visibility = 1.0;
-      
-      // Calculate lighting and apply to base color
-      vec3 lighting = ambient + getLighting(surface, lightDirection, lightColorAndBrightness, visibility);
-      vec3 finalColor = baseColor.rgb * lighting;
-      
-      return vec4(finalColor, baseColor.a);
-    }
-  ]], {
-    flags = {
-      normalMap = false
-    }
-  })
+  -- Load lighting shader with rim lighting for tank edges
+  lighting_shader = require('assets/shaders/tank_rim_lighting')
   
   -- Load player tank model
   player_tank_model = lovr.graphics.newModel('assets/objects/player_tank.glb')
@@ -96,22 +83,27 @@ function GameState.draw(pass)
   local plate_half_depth = PLATE_DEPTH / 2
   
   -- Calculate required distance based on FOV and plate dimensions
-  -- Using a reasonable FOV (60 degrees)
-  local fov = math.rad(60)
+  -- Using a reasonable FOV (60 degrees) - this is the vertical FOV
+  local fov = rad(60)
   local fov_half = fov / 2
   
-  -- Distance needed to fit plate width
-  local distance_for_width = plate_half_width / math.tan(fov_half) / aspect_ratio
-  -- Distance needed to fit plate depth
-  local distance_for_depth = plate_half_depth / math.tan(fov_half)
+  -- Calculate horizontal FOV based on aspect ratio
+  -- horizontal_fov = 2 * atan(tan(vertical_fov/2) * aspect_ratio)
+  local tan_fov_half = tan(fov_half)
+  local horizontal_fov_half = atan(tan_fov_half * aspect_ratio)
+  
+  -- Distance needed to fit plate width (using horizontal FOV)
+  local distance_for_width = plate_half_width / tan(horizontal_fov_half)
+  -- Distance needed to fit plate depth (using vertical FOV)
+  local distance_for_depth = plate_half_depth / tan_fov_half
   
   -- Use the larger distance to ensure entire plate is visible
-  local base_distance = math.max(distance_for_width, distance_for_depth) * 1.1  -- 10% padding
+  local base_distance = max(distance_for_width, distance_for_depth) * 1.1  -- 10% padding
   
-  -- Calculate camera position at 67.5 degree angle
+  -- Calculate camera position at 50 degree angle
   -- Camera is positioned at an angle, looking down at the plate
-  local camera_height = base_distance * math.sin(CAMERA_ANGLE)
-  local camera_horizontal_distance = base_distance * math.cos(CAMERA_ANGLE)
+  local camera_height = base_distance * sin(CAMERA_ANGLE)
+  local camera_horizontal_distance = base_distance * cos(CAMERA_ANGLE)
   
   -- Position camera to look at center of plate's top surface
   camera_position[1] = 0
@@ -124,15 +116,21 @@ function GameState.draw(pass)
     camera_pos.y = camera_position[2]
     camera_pos.z = camera_position[3]
   else
-    camera_pos = lovr.math.newVec3(camera_position[1], camera_position[2], camera_position[3])
+    camera_pos = newVec3(camera_position[1], camera_position[2], camera_position[3])
+  end
+  -- Set up view matrix to look at center of plate's top surface
+  if view_matrix == nil or look_at == nil or up == nil then
+    error("Camera setup incomplete: view_matrix, look_at, or up is nil")
   end
   
-  -- Set up view matrix to look at center of plate's top surface
   view_matrix:lookAt(camera_pos, look_at, up)
   
   -- Set camera view pose (lookAt creates a view matrix, so inverted = true)
   pass:setViewPose(1, view_matrix, true)
-  
+
+  -- Apply lighting shader to everything (ground, grid lines, and tank)
+  pass:setShader(lighting_shader)
+
   -- Draw ground plate
   -- Main brown box (sides and bottom)
   pass:setColor(BROWN[1], BROWN[2], BROWN[3])
@@ -140,7 +138,7 @@ function GameState.draw(pass)
   
   -- Green top face (slightly above box to avoid z-fighting)
   pass:setColor(GREEN[1], GREEN[2], GREEN[3])
-  pass:plane(0, PLATE_HEIGHT + 0.001, 0, PLATE_WIDTH, PLATE_DEPTH, math.pi / 2, 1, 0, 0)
+  pass:plane(0, PLATE_HEIGHT + 0.001, 0, PLATE_WIDTH, PLATE_DEPTH, PI / 2, 1, 0, 0)
   
   -- Draw grid lines on top if enabled
   if SHOW_GRID_LINES then
@@ -163,12 +161,12 @@ function GameState.draw(pass)
     end
   end
   
-  -- Draw player tank 1 meter above the ground with lighting and 45-degree rotation
-  pass:setShader(lighting_shader)
+  -- Draw player tank 1 meter above the ground
   pass:setColor(1, 1, 1)
-  -- Rotate 45 degrees around Y axis (vertical)
-  local tank_rotation = math.rad(45)
+  -- Rotate -90 degrees around Y axis (vertical)
+  local tank_rotation = blender_to_lovr_rotation;
   pass:draw(player_tank_model, 0, PLATE_HEIGHT + 1, 0, 1, tank_rotation, 0, 1, 0)
+  
   pass:setShader()  -- Reset to default shader for other draws
 end
 
