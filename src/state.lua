@@ -10,7 +10,7 @@ local states_by_name = {
 
 
 -- default game state to MenuState
-local currentState = MenuState
+local currentState = MenuState -- state is initialized in main.lua
 
 function State.GetCurrentState()
   return currentState

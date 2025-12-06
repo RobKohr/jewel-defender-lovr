@@ -12,7 +12,7 @@ function lovr.load()
   else
     Utils.turnOffFullscreen()
   end
-  State.SetCurrentState("MenuState")
+  State.SetCurrentState("GameState")
 end
 
 function lovr.update(dt)
