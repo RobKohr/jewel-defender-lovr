@@ -1,25 +1,25 @@
--- Enum for Available Game States
+-- Enum for Available Game Screens
 local State = {}
-local MenuState = require("src.states.menu.menu_state")
-local GameState = require("src.states.game.game_state")
+local MenuState = require("src.screens.menu.menu_state")
+local GameState = require("src.screens.game.game_state")
 
-local states_by_name = {
+local screens_by_name = {
   MenuState = MenuState,
   GameState = GameState,
 }
 
 
--- default game state to MenuState
-local currentState = MenuState -- state is initialized in main.lua
+-- default game screen to MenuState
+local currentScreen = MenuState -- screen is initialized in main.lua
 
 function State.GetCurrentState()
-  return currentState
+  return currentScreen
 end
 
 function State.SetCurrentState(newStateName)
-  currentState = states_by_name[newStateName]
-  currentState.init()
-  return currentState
+  currentScreen = screens_by_name[newStateName]
+  currentScreen.init()
+  return currentScreen
 end
 
 return State

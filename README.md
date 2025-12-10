@@ -8,11 +8,11 @@ A defender-style game built with LOVR (Lua-based VR/game framework). Currently i
 
 ## Architecture & Structure
 
-### State Management System
-- State-based architecture (`src/state.lua`)
-- Current states: `MenuState`, `GameState`
-- States initialized via `State.SetCurrentState()`
-- Each state implements: `init()`, `update(dt)`, `draw(pass)`, `cleanup()`, `onKeyPressed()`
+### Screen Management System
+- Screen-based architecture (`src/state.lua`)
+- Current screens: `MenuState`, `GameState`
+- Screens initialized via `State.SetCurrentState()`
+- Each screen implements: `init()`, `update(dt)`, `draw(pass)`, `cleanup()`, `onKeyPressed()`
 
 ### Key Modules
 - **Utils** (`src/utils.lua`): HUD rendering, fullscreen management, debug tools
