@@ -1,7 +1,7 @@
 # AI State Summary - Jewel Defender LOVR Project
 
 ## Project Overview
-A defender-style game built with LOVR (Lua-based VR/game framework). The project uses a screen-based architecture with MenuState and GameState.
+A defender-style game built with LOVR (Lua-based VR/game framework). The project uses a screen-based architecture with MenuScreen and GameScreen.
 
 ## Key Technical Learnings
 
@@ -92,8 +92,8 @@ return vec4(finalColor, baseColor.a);
 - Currently rotated 0° (points away from camera - needs 180° to face camera)
 
 ## File Structure
-- `src/screens/game/game_state.lua` - Main game screen with 3D scene
-- `src/screens/menu/menu_state.lua` - Menu system
+- `src/screens/game/game_screen.lua` - Main game screen with 3D scene
+- `src/screens/menu/menu_screen.lua` - Menu system
 - `assets/objects/player_tank.glb` - Tank model
 - `.gitignore` - Includes `.DS_Store` to ignore macOS system files
 

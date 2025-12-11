@@ -72,7 +72,7 @@ function Keyboard.getActionFromKeyboardPress(pressed_key, scancode, isrepeat)
     return nil
 end
 
--- returns true if an action was handled, false otherwise. if true, the action is not passed to the current state
+-- returns true if an action was handled, false otherwise. if true, the action is not passed to the current screen
 function Keyboard.handleGlobalActions(action)
     if action == "quit" then
         lovr.event.quit()

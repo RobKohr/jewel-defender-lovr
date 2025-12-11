@@ -1,4 +1,4 @@
-local MenuState = {}
+local MenuScreen = {}
 local Utils = require("src.utils")
 local Mouse = require("src.mouse")
 
@@ -24,8 +24,8 @@ local MENU_START_Y = -0.232
 
 
 local function startGame()
-  local State = require("src.state")
-  State.SetCurrentState("GameState")
+  local Screen = require("src.screen")
+  Screen.SetCurrentScreen("GameScreen")
 end
 local function options()
   print("Options")
@@ -46,14 +46,14 @@ local menu_items = {
   {x = MENU_START_X, y = MENU_START_Y + MENU_ITEM_SPACING * 3, label = "Quit", callback = quit },
 }
 
-function MenuState.init()
+function MenuScreen.init()
   background_image = lovr.data.newImage('assets/images/main_menu_background.jpg')
   background_texture = lovr.graphics.newTexture(background_image, {})
   menu_font = lovr.graphics.newFont('assets/fonts/Montserrat-ExtraBoldItalic.ttf', 80, 4)
 end
 
 
-function MenuState.updateHover(mouse_x, mouse_y)
+function MenuScreen.updateHover(mouse_x, mouse_y)
   local x = mouse_x
   hovered_index = nil
   for i, position in ipairs(menu_items) do
@@ -66,10 +66,10 @@ function MenuState.updateHover(mouse_x, mouse_y)
   end
 end
 
-function MenuState.update(dt)
+function MenuScreen.update(dt)
   local mouse_x, mouse_y = getNormalizedPosition()
   if mouse_x and mouse_y then
-    MenuState.updateHover(mouse_x, mouse_y)
+    MenuScreen.updateHover(mouse_x, mouse_y)
   end
   
   -- Handle mouse clicks
@@ -81,7 +81,7 @@ function MenuState.update(dt)
   end
 end
 
-function MenuState.draw(pass)
+function MenuScreen.draw(pass)
   drawHUDBackground(pass, background_texture)
   
   for i, position in ipairs(menu_items) do
@@ -95,13 +95,13 @@ function MenuState.draw(pass)
   debugMousePosition(pass, menu_font)
 end
 
-function MenuState.cleanup()
+function MenuScreen.cleanup()
   -- Nothing to cleanup
 end
 
-function MenuState.onKeyPressed(key, scancode, isrepeat, action)
+function MenuScreen.onKeyPressed(key, scancode, isrepeat, action)
   -- TODO: Implement key press handling
 end
 
-return MenuState
+return MenuScreen
 

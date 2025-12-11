@@ -1,4 +1,4 @@
-local GameState = {}
+local GameScreen = {}
 
 -- localize functions and constants that are used in this file (don't add things that aren't used in this file)
 -- localized functions
@@ -49,7 +49,7 @@ local lighting_shader = nil
 
 local blender_to_lovr_rotation = rad(-90) -- convert blender rotation to lovr rotation
 
-function GameState.init()
+function GameScreen.init()
   -- Set sky blue background
   lovr.graphics.setBackgroundColor(SKY_BLUE[1], SKY_BLUE[2], SKY_BLUE[3])
   
@@ -68,11 +68,11 @@ function GameState.init()
   player_tank_model = lovr.graphics.newModel('assets/objects/player_tank.glb')
 end
 
-function GameState.update(dt)
+function GameScreen.update(dt)
   -- Camera position will be calculated in draw() based on viewport
 end
 
-function GameState.draw(pass)
+function GameScreen.draw(pass)
   -- Get viewport dimensions
   local width, height = pass:getDimensions()
   local aspect_ratio = width / height
@@ -170,12 +170,12 @@ function GameState.draw(pass)
   pass:setShader()  -- Reset to default shader for other draws
 end
 
-function GameState.cleanup()
+function GameScreen.cleanup()
   -- Nothing to cleanup
 end
 
-function GameState.onKeyPressed(key, scancode, isrepeat, action)
+function GameScreen.onKeyPressed(key, scancode, isrepeat, action)
   -- TODO: Implement key press handling
 end
 
-return GameState
+return GameScreen
