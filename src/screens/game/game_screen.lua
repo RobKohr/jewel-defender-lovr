@@ -1,4 +1,5 @@
 local GameScreen = {}
+local PauseMenu = require("src.screens.game.pause_menu")
 
 -- localize functions and constants that are used in this file (don't add things that aren't used in this file)
 -- localized functions
@@ -66,9 +67,18 @@ function GameScreen.init()
   
   -- Load player tank model
   player_tank_model = lovr.graphics.newModel('assets/objects/player_tank.glb')
+  
+  -- Initialize pause menu
+  PauseMenu.init()
 end
 
 function GameScreen.update(dt)
+  -- Check if pause menu is showing - if so, update it and return early
+  if PauseMenu.show then
+    PauseMenu.update()
+    return
+  end
+  
   -- Camera position will be calculated in draw() based on viewport
 end
 
@@ -168,6 +178,9 @@ function GameScreen.draw(pass)
   pass:draw(player_tank_model, 0, PLATE_HEIGHT + 1, 0, 1, tank_rotation, 0, 1, 0)
   
   pass:setShader()  -- Reset to default shader for other draws
+  
+  -- Draw pause menu on top if showing
+  PauseMenu.draw(pass)
 end
 
 function GameScreen.cleanup()
@@ -175,7 +188,20 @@ function GameScreen.cleanup()
 end
 
 function GameScreen.onKeyPressed(key, scancode, isrepeat, action)
-  -- TODO: Implement key press handling
+  -- Check if pause menu is showing - if so, let it handle input first
+  if PauseMenu.show then
+    if PauseMenu.onKeyPressed(key, scancode, isrepeat, action) then
+      return  -- Pause menu consumed the key event
+    end
+  end
+  
+  -- Handle escape key to toggle pause menu
+  if key == "escape" then
+    PauseMenu.show = not PauseMenu.show
+    return  -- Consume the escape key to prevent global quit action
+  end
+  
+  -- TODO: Implement other key press handling
 end
 
 return GameScreen

@@ -173,6 +173,39 @@ function lovr.load()
 end
 ```
 
+### Multi-Room Architecture
+
+The server supports multiple concurrent game rooms. Each room operates independently:
+
+**Room Management:**
+- Each room has a unique room ID
+- Rooms maintain their own game state and player list
+- Players can join/leave rooms dynamically
+- Rooms can be created/destroyed as needed
+
+**Room-Scoped Updates:**
+- **State updates are only sent to clients within the same room**
+- When a room's game manager produces a state update, it is only broadcast to clients who are members of that room
+- Clients in different rooms do not receive each other's updates
+- This ensures efficient bandwidth usage and proper game isolation
+
+**Example Room Update Flow:**
+```lua
+-- Server: Room processes game step
+local room = rooms[roomId]
+local stateUpdate = room.gameManager:step(dt)
+
+-- Only send to clients in THIS room
+for clientId, client in pairs(room.clients) do
+  transport:send(clientId, cmsgpack.pack(stateUpdate))
+end
+```
+
+**Room Join/Leave:**
+- When a client joins a room, they start receiving that room's updates
+- When a client leaves a room, they stop receiving updates from that room
+- Clients can only be in one room at a time
+
 ### Headless Server Mode
 
 LOVR supports running in headless mode:
@@ -277,11 +310,13 @@ local position = {
 {
   tick = 123,           -- Server tick
   baselineTick = 120,   -- For delta compression (nil if full state)
-  players = [...],      -- Player states
-  entities = [...],      -- Entity states
+  players = [...],      -- Player states (only players in this room)
+  entities = [...],      -- Entity states (only entities in this room)
   events = [...]        -- Game events (damage, spawns, etc.)
 }
 ```
+
+**Important:** State updates are **room-scoped** - they only contain data for the room the client is in, and are only sent to clients who are members of that room.
 
 ## Implementation Phases
 

@@ -5,6 +5,7 @@ _G = {
 local Screen = require("src.screen")
 local Keyboard = require("src.keyboard")
 local Utils = require("src.utils")
+local GameScreen = require("src.screens.game.game_screen")
 
 function lovr.load()
   if _G.fullscreen then
@@ -12,7 +13,7 @@ function lovr.load()
   else
     Utils.turnOffFullscreen()
   end
-  Screen.SetCurrentScreen("GameScreen")
+  Screen.SetCurrentScreen("MenuScreen")
 end
 
 function lovr.update(dt)
@@ -26,9 +27,17 @@ function lovr.draw(pass)
 end
 
 function lovr.keypressed(key, scancode, isrepeat)
+  local currentScreen = Screen.GetCurrentScreen()
+  
+  -- Allow GameScreen to intercept escape key before global handler
+  if key == "escape" and currentScreen == GameScreen then
+    currentScreen.onKeyPressed(key, scancode, isrepeat, nil)
+    return
+  end
+  
   local action = Keyboard.getActionFromKeyboardPress(key, scancode, isrepeat)
   if not Keyboard.handleGlobalActions(action) then
-    Screen.GetCurrentScreen().onKeyPressed(key, scancode, isrepeat, action)
+    currentScreen.onKeyPressed(key, scancode, isrepeat, action)
   end
 end
 

@@ -22,5 +22,9 @@
 			"path": "../speed-test-c-raylib"
 		}
 	],
-	"settings": {}
+	"settings": {
+		"cSpell.words": [
+			"cmsgpack"
+		]
+	}
 }
