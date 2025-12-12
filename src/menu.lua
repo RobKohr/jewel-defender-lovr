@@ -3,7 +3,7 @@ local Utils = require("src.utils")
 local Mouse = require("src.mouse")
 
 -- Cache frequently used functions
-local getNormalizedPosition = Mouse.getNormalizedPosition
+local getNormalizedPosition = Mouse.getMouseNormalizedPosition
 local drawHUDText = Utils.drawHUDText
 local debugMousePosition = Utils.debugMousePosition
 
@@ -58,8 +58,8 @@ function Menu.create()
       self.mouse_hovered_index = nil
       
       for i, position in ipairs(self.menu_items) do
-        -- width is MENU_TEXT_SIZE * number of characters in the label
-        local labelWidth = 0.45
+        local characterWidth = 0.05;
+        local labelWidth = characterWidth * #position.label
         if mouse_y > position.y and mouse_y < position.y + MENU_TEXT_SIZE and 
            x > -0.86 and x < position.x + labelWidth then
           self.mouse_hovered_index = i

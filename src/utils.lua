@@ -3,7 +3,7 @@ local AppSettings = require("app_settings")
 local Mouse = require("src.mouse")
 
 -- Cache frequently used functions and values
-local getNormalizedPosition = Mouse.getNormalizedPosition
+local getMouseNormalizedPosition = Mouse.getMouseNormalizedPosition
 local windowTitle = AppSettings.window.title
 
 function Utils.turnOnFullscreen()
@@ -86,7 +86,7 @@ end
 local function drawDebugCircle(pass, x, y, viewport_height)
   local aspect = Utils.setupHUD(pass)
   local circle_size = (25 / viewport_height) * 2
-  local mouse_x, mouse_y = getNormalizedPosition()
+  local mouse_x, mouse_y = getMouseNormalizedPosition()
 
   pass:setColor(1, 0, 0, 1)
   pass:circle(mouse_x*aspect, mouse_y, 0, circle_size, 0, 1, 0, 0, 'fill')
@@ -99,7 +99,7 @@ function Utils.debugMousePosition(pass, font)
   local MENU_TEXT_SIZE = 0.136
   local viewport_width, viewport_height = pass:getDimensions()
   local aspect = viewport_width / viewport_height
-  local mouse_x, mouse_y, _ = getNormalizedPosition()
+  local mouse_x, mouse_y, _ = getMouseNormalizedPosition()
   if mouse_x and mouse_y then
     drawDebugCircle(pass, mouse_x*aspect, mouse_y, viewport_height)  
     -- Display mouse coordinates at bottom of screen

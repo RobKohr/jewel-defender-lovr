@@ -1,6 +1,12 @@
 local Mouse = {}
 
-function Mouse.getNormalizedPosition()
+-- Returns the mouse position in normalized coordinates (-1 to 1 range)
+-- Normalized coordinates match the HUD coordinate system where:
+--   x: -1 (left) to 1 (right), adjusted for aspect ratio
+--   y: -1 (bottom) to 1 (top)
+-- This allows mouse interaction to work consistently with HUD elements
+-- regardless of window size or aspect ratio.
+function Mouse.getMouseNormalizedPosition()
   local viewport_width, viewport_height = lovr.system.getWindowDimensions()
   if not viewport_width then return nil, nil end
   
