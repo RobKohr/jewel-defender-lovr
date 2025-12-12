@@ -30,12 +30,6 @@ end
 function lovr.keypressed(key, scancode, isrepeat)
   local currentScreen = Screen.GetCurrentScreen()
   
-  -- Allow GameScreen to intercept escape key before global handler
-  if key == "escape" and currentScreen == GameScreen then
-    currentScreen.onKeyPressed(key, scancode, isrepeat, nil)
-    return
-  end
-  
   local action = Keyboard.getActionFromKeyboardPress(key, scancode, isrepeat)
   if not Keyboard.handleGlobalActions(action) then
     currentScreen.onKeyPressed(key, scancode, isrepeat, action)

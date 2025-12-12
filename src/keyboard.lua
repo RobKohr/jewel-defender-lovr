@@ -12,7 +12,6 @@ local default_keyboard_mappings = {
             {'ralt', 'f4'},
             {'lgui', 'q'},
             {'rgui', 'q'},
-            {'escape'},
             -- Additional common quit shortcuts
             {'lctrl', 'lshift', 'q'},
             {'lctrl', 'rshift', 'q'},

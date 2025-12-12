@@ -68,6 +68,12 @@ function MenuScreen.cleanup()
 end
 
 function MenuScreen.onKeyPressed(key, scancode, isrepeat, action)
+  -- Handle escape to quit when on menu screen
+  if key == "escape" then
+    lovr.event.quit()
+    return
+  end
+  
   if menu then
     menu:onKeyPressed(key, scancode, isrepeat, action)
   end
