@@ -68,7 +68,9 @@ function MenuScreen.cleanup()
 end
 
 function MenuScreen.onKeyPressed(key, scancode, isrepeat, action)
-  -- TODO: Implement key press handling
+  if menu then
+    menu:onKeyPressed(key, scancode, isrepeat, action)
+  end
 end
 
 return MenuScreen

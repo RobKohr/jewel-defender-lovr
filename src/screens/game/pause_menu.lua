@@ -68,7 +68,12 @@ function PauseMenu.onKeyPressed(key, scancode, isrepeat, action)
     return true  -- Consume the key event
   end
   
-  return false
+  -- Forward keyboard presses to menu
+  if menu then
+    menu:onKeyPressed(key, scancode, isrepeat, action)
+  end
+  
+  return true  -- Consume the key event when pause menu is showing
 end
 
 return PauseMenu

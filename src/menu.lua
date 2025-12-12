@@ -20,7 +20,9 @@ function Menu.create()
   local menu = {
     menu_font = nil,
     menu_items = {},
-    hovered_index = nil,
+    hovered_index = 1,
+    mouse_hovered_index = nil,
+    keyboard_hovered_index = 1,
     menu_start_x = nil,
     menu_start_y = DEFAULT_MENU_START_Y,
     show_debug_pointer = false,
@@ -50,21 +52,27 @@ function Menu.create()
   function menu:update()
     local mouse_x, mouse_y = getNormalizedPosition()
     if not mouse_x or not mouse_y then
-      self.hovered_index = nil
-      return
+      self.mouse_hovered_index = nil
+    else
+      local x = mouse_x
+      self.mouse_hovered_index = nil
+      
+      for i, position in ipairs(self.menu_items) do
+        -- width is MENU_TEXT_SIZE * number of characters in the label
+        local labelWidth = 0.45
+        if mouse_y > position.y and mouse_y < position.y + MENU_TEXT_SIZE and 
+           x > -0.86 and x < position.x + labelWidth then
+          self.mouse_hovered_index = i
+          break
+        end
+      end
     end
     
-    local x = mouse_x
-    self.hovered_index = nil
-    
-    for i, position in ipairs(self.menu_items) do
-      -- width is MENU_TEXT_SIZE * number of characters in the label
-      local labelWidth = 0.45
-      if mouse_y > position.y and mouse_y < position.y + MENU_TEXT_SIZE and 
-         x > -0.86 and x < position.x + labelWidth then
-        self.hovered_index = i
-        break
-      end
+    -- Update hovered_index: use mouse_hovered_index if not nil, otherwise use keyboard_hovered_index
+    if self.mouse_hovered_index ~= nil then
+      self.hovered_index = self.mouse_hovered_index
+    else
+      self.hovered_index = self.keyboard_hovered_index
     end
     
     -- Handle mouse clicks
@@ -114,6 +122,35 @@ function Menu.create()
   -- Set debug mouse position visibility
   function menu:setShowDebugMousePosition(show)
     self.show_debug_mouse_position = show
+  end
+  
+  -- Handle keyboard input
+  function menu:onKeyPressed(key, scancode, isrepeat, action)
+    if not self.menu_items or #self.menu_items == 0 then
+      return
+    end
+    
+    if key == "up" or key == "w" then
+      -- Move up in menu
+      self.keyboard_hovered_index = self.keyboard_hovered_index - 1
+      if self.keyboard_hovered_index < 1 then
+        self.keyboard_hovered_index = #self.menu_items
+      end
+    elseif key == "down" or key == "s" then
+      -- Move down in menu
+      self.keyboard_hovered_index = self.keyboard_hovered_index + 1
+      if self.keyboard_hovered_index > #self.menu_items then
+        self.keyboard_hovered_index = 1
+      end
+    elseif key == "return" or key == "enter" then
+      -- Activate current menu item (same as clicking)
+      if self.hovered_index then
+        local menu_item = self.menu_items[self.hovered_index]
+        if menu_item and menu_item.callback then
+          menu_item.callback()
+        end
+      end
+    end
   end
   
   return menu
