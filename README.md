@@ -15,8 +15,8 @@ A defender-style game built with LOVR (Lua-based VR/game framework). Currently i
 - Each screen implements: `init()`, `update(dt)`, `draw(pass)`, `cleanup()`, `onKeyPressed()`
 
 ### Key Modules
-- **Utils** (`src/utils.lua`): HUD rendering, fullscreen management, debug tools
-- **Mouse** (`src/mouse.lua`): Normalized mouse position calculations
+- **Utils** (`src/utils.lua`): Fullscreen management
+- **HUD** (`src/hud.lua`): HUD rendering, normalized mouse position calculations, debug tools
 - **Keyboard** (`src/keyboard.lua`): Keyboard input mapping and action handling
 
 ## Menu System

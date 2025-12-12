@@ -5,6 +5,7 @@ _G = {
 local Screen = require("src.screen")
 local Keyboard = require("src.keyboard")
 local Utils = require("src.utils")
+local HUD = require("src.hud")
 local GameScreen = require("src.screens.game.game_screen")
 
 function lovr.load()
@@ -22,7 +23,7 @@ end
 
 function lovr.draw(pass)
   Screen.GetCurrentScreen().draw(pass)
-  Utils.showFPS(pass)
+  HUD.showFPS(pass)
   return false
 end
 

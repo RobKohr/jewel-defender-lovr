@@ -1,9 +1,9 @@
 local MenuScreen = {}
-local Utils = require("src.utils")
+local HUD = require("src.hud")
 local Menu = require("src.menu")
 
 -- Cache frequently used functions
-local drawHUDBackground = Utils.drawHUDBackground
+local drawHUDBackground = HUD.drawHUDBackground
 
 local background_texture = nil
 local background_image = nil

@@ -1,11 +1,10 @@
 local Menu = {}
-local Utils = require("src.utils")
-local Mouse = require("src.mouse")
+local HUD = require("src.hud")
 
 -- Cache frequently used functions
-local getNormalizedPosition = Mouse.getMouseNormalizedPosition
-local drawHUDText = Utils.drawHUDText
-local debugMousePosition = Utils.debugMousePosition
+local getNormalizedPosition = HUD.getMouseNormalizedPosition
+local drawHUDText = HUD.drawHUDText
+local debugMousePosition = HUD.debugMousePosition
 
 -- HUD text sizing (normalized units)
 local MENU_TEXT_SIZE = 0.136
@@ -105,7 +104,7 @@ function Menu.create()
         local aspect = viewport_width / viewport_height
         local circle_size = (25 / viewport_height) * 2
         
-        Utils.setupHUD(pass)
+        HUD.setupHUD(pass)
         pass:setColor(1, 0, 0, 1)
         pass:circle(mouse_x * aspect, mouse_y, 0, circle_size, 0, 1, 0, 0, 'fill')
         pass:setColor(1, 1, 1, 1)

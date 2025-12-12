@@ -1,9 +1,9 @@
 local PauseMenu = {}
 local Menu = require("src.menu")
-local Utils = require("src.utils")
+local HUD = require("src.hud")
 
 -- Cache frequently used functions
-local drawHUDBackground = Utils.drawHUDBackground
+local drawHUDBackground = HUD.drawHUDBackground
 
 local menu = nil
 PauseMenu.show = false
@@ -44,7 +44,7 @@ end
 function PauseMenu.draw(pass)
   if PauseMenu.show and menu then
     -- Draw semi-transparent overlay
-    Utils.setupHUD(pass)
+    HUD.setupHUD(pass)
     pass:setColor(0, 0, 0, 0.5)  -- Semi-transparent black overlay
     local viewport_width, viewport_height = pass:getDimensions()
     local aspect = viewport_width / viewport_height
