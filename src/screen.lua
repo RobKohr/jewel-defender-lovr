@@ -2,10 +2,12 @@
 local Screen = {}
 local MenuScreen = require("src.screens.menu.menu_screen")
 local GameScreen = require("src.screens.game.game_screen")
+local OnlineMenuScreen = require("src.screens.online_menu.online_menu_screen")
 
 local screens_by_name = {
   MenuScreen = MenuScreen,
   GameScreen = GameScreen,
+  OnlineMenuScreen = OnlineMenuScreen,
 }
 
 

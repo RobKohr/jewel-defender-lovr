@@ -27,7 +27,8 @@ local function quit()
 end
 
 local function startOnlineGame()
-  print("Start Online Game")
+  local Screen = require("src.screen")
+  Screen.SetCurrentScreen("OnlineMenuScreen")
 end
 
 function MenuScreen.init()
