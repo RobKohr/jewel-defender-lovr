@@ -72,3 +72,4 @@ function PauseMenu.onKeyPressed(key, scancode, isrepeat, action)
 end
 
 return PauseMenu
+
