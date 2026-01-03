@@ -1,6 +1,7 @@
 #!/bin/bash
 # Start script for Jewel Defender LÖVR game
 # Runs in desktop/simulator mode (not VR)
+# Usage: ./start.sh [server]
 
 # Get the directory where this script is located
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
@@ -22,6 +23,13 @@ export DYLD_LIBRARY_PATH=/opt/homebrew/lib:$DYLD_LIBRARY_PATH
 # Pass the current directory as the game source
 cd "$SCRIPT_DIR"
 echo "Starting LÖVR from: $SCRIPT_DIR"
-echo "Running: $LOVR_BIN --simulator ."
-"$LOVR_BIN" --simulator . 2>&1
+
+# Check if server mode is requested
+if [ "$1" = "server" ]; then
+    echo "Running: $LOVR_BIN --simulator . server (SERVER MODE)"
+    "$LOVR_BIN" --simulator . server 2>&1
+else
+    echo "Running: $LOVR_BIN --simulator ."
+    "$LOVR_BIN" --simulator . 2>&1
+fi
 
