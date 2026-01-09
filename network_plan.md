@@ -109,34 +109,104 @@ end
 
 ## Architecture
 
-### Authoritative Server Design
+### Unified Authoritative Server Design
 
-The server is the single source of truth for all game state:
+**Key Design Principle**: Local and networked games use the **same authoritative server code**. The only difference is the transport layer (direct function calls vs network).
 
-- **Server responsibilities**:
-  - Run physics simulation deterministically
-  - Process player inputs
+This architecture provides:
+- **Single source of truth**: Game logic lives in one place (`GameManager`)
+- **Consistent behavior**: Local and networked games behave identically
+- **Easier testing**: Test game logic without networking overhead
+- **Flexible deployment**: Switch between local and networked without code changes
+
+**Architecture Layers:**
+
+```
+┌─────────────────────────────────────┐
+│     GameManager (Authoritative)     │
+│  - Physics simulation (fixed timestep)│
+│  - Game state management             │
+│  - Input processing                  │
+│  - Deterministic logic               │
+└──────────────┬───────────────────────┘
+               │
+       ┌───────┴────────┐
+       │                │
+┌──────▼──────┐  ┌──────▼──────┐
+│   Network   │  │   Local      │
+│  Transport  │  │  Transport   │
+│  (ENet)     │  │ (Direct Call)│
+└─────────────┘  └──────────────┘
+       │                │
+       └───────┬────────┘
+               │
+       ┌───────▼────────┐
+       │     Server      │
+       │  (Coordinator)  │
+       └─────────────────┘
+```
+
+**Component Responsibilities:**
+
+- **GameManager** (`src/game/game_manager.lua`):
+  - Single source of truth for all game state
+  - Runs physics simulation with fixed timestep (60 Hz)
+  - Processes player inputs deterministically
+  - Provides `step(dt)`, `applyInput()`, `getState()` API
+  - Transport-agnostic (doesn't know about network vs local)
+
+- **Transport Layer** (Abstract interface):
+  - **Local Transport** (`src/network/transport_local.lua`): Direct function calls, zero latency
+  - **Network Transport** (`src/network/transport_network.lua`): ENet UDP networking (to be implemented)
+  - Both implement: `send()`, `broadcast()`, `onReceive()`, `disconnect()`
+
+- **Server** (`src/network/server.lua`):
+  - Coordinates GameManager and Transport
+  - Handles client connections/disconnections
+  - Routes messages between transport and game manager
+  - Broadcasts state updates to clients
+  - Works identically whether using local or network transport
+
+**Server responsibilities**:
+  - Run physics simulation deterministically (via GameManager)
+  - Process player inputs (via GameManager)
   - Validate game state
-  - Broadcast state updates to clients
+  - Broadcast state updates to clients (via Transport)
 
-- **Client responsibilities**:
-  - Send input to server
-  - Receive and apply state updates
+**Client responsibilities**:
+  - Send input to server (via Transport)
+  - Receive and apply state updates (via Transport)
   - Render game state (with client-side prediction/interpolation)
   - Handle local UI/effects
 
-### ENet for UDP Networking
+### Transport Layer Implementation
 
-LOVR includes the `enet` plugin for UDP networking:
+**Local Transport** (for single-player/local multiplayer):
+- Direct function calls - zero network overhead
+- Instant communication - no latency
+- Used automatically when running in client mode
+- Client and server run in same process
 
-**Server Setup:**
+**Network Transport** (for online multiplayer):
+- Uses ENet for UDP networking
+- LOVR includes the `enet` plugin for UDP networking
+- Handles connection management, packet delivery, etc.
+
+**Network Transport Implementation** (to be implemented):
 ```lua
+-- src/network/transport_network.lua
 local enet = require 'enet'
 
-function lovr.load()
-  local host = enet.host_create('0.0.0.0:6789')  -- Listen on port
-  
-  -- Service events in update loop
+local TransportNetwork = {}
+local host = nil
+local PORT = 6789
+
+function TransportNetwork.init()
+  host = enet.host_create('0.0.0.0:' .. PORT)
+  -- ... setup ...
+end
+
+function TransportNetwork.update()
   local event = host:service(100)  -- 100ms timeout
   if event then
     if event.type == 'connect' then
@@ -144,7 +214,7 @@ function lovr.load()
     elseif event.type == 'receive' then
       -- Handle incoming message
       local data = cmsgpack.unpack(event.data)
-      processClientInput(data, event.peer)
+      -- Route to server handler
     elseif event.type == 'disconnect' then
       -- Handle client disconnect
     end
@@ -152,7 +222,7 @@ function lovr.load()
 end
 ```
 
-**Client Setup:**
+**Client Network Setup** (to be implemented):
 ```lua
 local enet = require 'enet'
 
@@ -175,13 +245,49 @@ end
 
 ### Multi-Room Architecture
 
-The server supports multiple concurrent game rooms. Each room operates independently:
+The server supports multiple concurrent game rooms. Each room operates independently and can support 1-4 players.
+
+**Room Structure:**
+```lua
+{
+  id = "local" or "room_abc123" or UUID,  -- Unique identifier
+  joinCode = nil or "123456",              -- 6-digit code for private rooms
+  visibility = "public" or "private",      -- Room visibility
+  maxPlayers = 4,                          -- Maximum players (1-4)
+  players = {playerId1, playerId2, ...},   -- Current players (up to 4)
+  gameState = {...},                       -- Room-specific game state
+  createdAt = timestamp,                   -- Creation timestamp
+  lastActivity = timestamp                 -- Last activity timestamp
+}
+```
+
+**Room Types:**
+
+1. **Local Room** (`id = "local"`):
+   - Used for single-player and local multiplayer games
+   - Created automatically when starting a local game
+   - Never appears in public room list
+   - No join code needed
+   - Destroyed when game ends
+   - Uses local transport (direct function calls)
+
+2. **Public Rooms**:
+   - Visible in public room list
+   - Anyone can join (up to maxPlayers)
+   - No join code required
+   - Destroyed when empty for 60 seconds
+
+3. **Private Rooms**:
+   - Not visible in public room list
+   - Require 6-digit join code to join
+   - Destroyed when empty immediately (or after short delay)
 
 **Room Management:**
 - Each room has a unique room ID
 - Rooms maintain their own game state and player list
 - Players can join/leave rooms dynamically
 - Rooms can be created/destroyed as needed
+- Room manager handles creation, listing, joining, and cleanup
 
 **Room-Scoped Updates:**
 - **State updates are only sent to clients within the same room**
@@ -193,11 +299,11 @@ The server supports multiple concurrent game rooms. Each room operates independe
 ```lua
 -- Server: Room processes game step
 local room = rooms[roomId]
-local stateUpdate = room.gameManager:step(dt)
+local stateUpdate = GameManager.getRoomState(roomId)
 
 -- Only send to clients in THIS room
-for clientId, client in pairs(room.clients) do
-  transport:send(clientId, cmsgpack.pack(stateUpdate))
+for playerId, _ in pairs(room.players) do
+  transport:send(playerId, cmsgpack.pack(stateUpdate))
 end
 ```
 
@@ -205,6 +311,13 @@ end
 - When a client joins a room, they start receiving that room's updates
 - When a client leaves a room, they stop receiving updates from that room
 - Clients can only be in one room at a time
+
+**Local Game Initialization:**
+- When user clicks "Start Local Game" from menu:
+  1. Delete existing local room data if it exists
+  2. Create a fresh "local" room
+  3. Initialize game state for the local room
+  4. Connect client to local room using local transport
 
 ### Headless Server Mode
 
@@ -324,16 +437,21 @@ local position = {
 
 **Goals:**
 - Set up headless server configuration
-- Implement basic ENet server and client
-- Establish connection between client and server
-- Send/receive simple messages
+- Implement unified server architecture with transport abstraction
+- Create GameManager for authoritative game logic
+- Implement local transport for single-player/local games
+- Establish foundation for network transport
 
 **Tasks:**
-- [ ] Create server configuration (disable graphics/headset)
-- [ ] Implement basic ENet server in `src/network/server.lua`
+- [x] Create server configuration (disable graphics/headset)
+- [x] Create `src/game/game_manager.lua` - authoritative game logic
+- [x] Create `src/network/transport_local.lua` - local transport (direct calls)
+- [x] Create `src/network/server.lua` - server coordinator
+- [x] Add command-line flag to run in server mode
+- [ ] Implement basic ENet network transport in `src/network/transport_network.lua`
 - [ ] Implement basic ENet client in `src/network/client.lua`
-- [ ] Add command-line flag to run in server mode
-- [ ] Test basic connection and message passing
+- [ ] Test local transport (client-server communication via direct calls)
+- [ ] Test network transport (connection and message passing)
 
 ### Phase 2: State Serialization with MessagePack
 

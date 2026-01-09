@@ -10,13 +10,35 @@ local Keyboard = require("src.keyboard")
 local Utils = require("src.utils")
 local HUD = require("src.hud")
 local GameScreen = require("src.screens.game.game_screen")
+-- Server is always available (for local games, it runs in the same process)
+local Server = require("src.network.server")
 
 function lovr.load(arg)
   if isServer then
-    -- Server mode: skip UI initialization
-    print("Server mode: Initializing network server...")
-    -- TODO: Initialize server networking here
+    -- Server mode: initialize authoritative server (headless)
+    print("Server mode: Initializing authoritative server...")
+    if Server then
+      -- Use local transport for now (will add network transport later)
+      local useLocalTransport = true
+      if not Server.init(useLocalTransport) then
+        print("ERROR: Failed to initialize server")
+      end
+    else
+      print("ERROR: Failed to load server module")
+    end
     return
+  end
+  
+  -- Client mode: initialize local server (for local games)
+  print("Client mode: Initializing local server...")
+  if Server then
+    -- Use local transport for local games
+    local useLocalTransport = true
+    if not Server.init(useLocalTransport) then
+      print("ERROR: Failed to initialize local server")
+    end
+  else
+    print("ERROR: Failed to load server module")
   end
   
   -- Client mode: normal initialization
@@ -30,12 +52,19 @@ end
 
 function lovr.update(dt)
   if isServer then
-    -- Server mode: update server logic
-    -- TODO: Update server networking here
+    -- Server mode: update authoritative server only
+    if Server then
+      Server.update(dt)
+    end
     return
   end
   
-  -- Client mode: normal update
+  -- Client mode: update both server (for local games) and client
+  if Server and Server.isInitialized then
+    Server.update(dt)
+  end
+  
+  -- Update current screen
   Screen.GetCurrentScreen().update(dt)
 end
 

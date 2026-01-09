@@ -13,8 +13,26 @@ local menu = nil
 local MENU_START_X = -0.867
 
 local function startLocalGame()
-  local Screen = require("src.screen")
-  Screen.SetCurrentScreen("GameScreen")
+  -- Server should already be initialized in main.lua
+  local Server = require("src.network.server")
+  
+  if not Server.isInitialized then
+    print("ERROR: Server not initialized")
+    return
+  end
+  
+  -- Delete existing local room and create a new one
+  local room = Server.createLocalRoom()
+  if room then
+    -- Join as player 1 (local player)
+    Server.joinLocalRoom(1)
+    
+    -- Switch to game screen
+    local Screen = require("src.screen")
+    Screen.SetCurrentScreen("GameScreen")
+  else
+    print("ERROR: Failed to create local room")
+  end
 end
 local function options()
   print("Options")
