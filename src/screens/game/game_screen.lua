@@ -47,8 +47,11 @@ local camera_pos = nil
 local player_tank_model = nil
 local lighting_shader = nil
 
-
-local blender_to_lovr_rotation = rad(-90) -- convert blender rotation to lovr rotation
+-- Server connection
+local Server = nil
+local playerId = 1  -- Local player ID
+local roomId = "local"
+local gameState = nil  -- Current game state from server
 
 function GameScreen.init()
   -- Set sky blue background
@@ -70,6 +73,20 @@ function GameScreen.init()
   
   -- Initialize pause menu
   PauseMenu.init()
+  
+  -- Register as client with server
+  Server = require("src.network.server")
+  if Server and Server.isInitialized then
+    -- Register client with receive callback
+    Server.registerClient(playerId, function(data)
+      if data.type == "state_update" and data.roomId == roomId then
+        gameState = data.state
+      end
+    end)
+    print("GameScreen: Registered as client " .. tostring(playerId))
+  else
+    print("GameScreen: WARNING - Server not initialized")
+  end
 end
 
 function GameScreen.update(dt)
@@ -77,6 +94,22 @@ function GameScreen.update(dt)
   if PauseMenu.show then
     PauseMenu.update()
     return
+  end
+  
+  -- Track keyboard input and send to server
+  if Server and Server.isInitialized then
+    local input = {
+      moveForward = lovr.system.isKeyDown("w"),
+      moveBackward = lovr.system.isKeyDown("s"),
+      turnLeft = lovr.system.isKeyDown("a"),
+      turnRight = lovr.system.isKeyDown("d")
+    }
+    
+    -- Send input to server
+    Server.sendToServer(playerId, {
+      type = "input",
+      input = input
+    })
   end
   
   -- Camera position will be calculated in draw() based on viewport
@@ -171,11 +204,24 @@ function GameScreen.draw(pass)
     end
   end
   
-  -- Draw player tank 1 meter above the ground
+  -- Draw player tank at position from game state
   pass:setColor(1, 1, 1)
-  -- Rotate -90 degrees around Y axis (vertical)
-  local tank_rotation = blender_to_lovr_rotation;
-  pass:draw(player_tank_model, 0, PLATE_HEIGHT + 1, 0, 1, tank_rotation, 0, 1, 0)
+  
+  -- Get player position from game state
+  local tank_x = 0.0
+  local tank_y = PLATE_HEIGHT + 1
+  local tank_z = 0.0
+  local tank_rotation_y = rad(0)
+  
+  if gameState and gameState.players and gameState.players[playerId] then
+    local player = gameState.players[playerId]
+    tank_x = player.x or 0.0
+    tank_z = player.z or 0.0
+    -- Combine model rotation with player rotation
+    tank_rotation_y = (player.rotation or 0.0)
+  end
+  
+  pass:draw(player_tank_model, tank_x, tank_y, tank_z, 1, tank_rotation_y, 0, 1, 0)
   
   pass:setShader()  -- Reset to default shader for other draws
   
@@ -184,7 +230,13 @@ function GameScreen.draw(pass)
 end
 
 function GameScreen.cleanup()
-  -- Nothing to cleanup
+  -- Disconnect from server
+  if Server and Server.isInitialized then
+    Server.sendToServer(playerId, {
+      type = "disconnect"
+    })
+  end
+  gameState = nil
 end
 
 function GameScreen.onKeyPressed(key, scancode, isrepeat, action)

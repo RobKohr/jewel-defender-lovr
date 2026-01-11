@@ -100,6 +100,8 @@ function Server.handleClientMessage(playerId, data)
         if not GameManager.getRoomState(targetRoomId) then
           GameManager.initRoom(targetRoomId)
         end
+        -- Initialize player in game manager
+        GameManager.initPlayer(targetRoomId, playerId)
         -- Send confirmation
         if Transport and Transport.send then
           Transport.send(playerId, {
@@ -223,6 +225,12 @@ end
 function Server.joinLocalRoom(playerId)
   local success, room = RoomManager.addPlayerToRoom("local", playerId)
   if success then
+    -- Initialize room if needed
+    if not GameManager.getRoomState("local") then
+      GameManager.initRoom("local")
+    end
+    -- Initialize player in game manager
+    GameManager.initPlayer("local", playerId)
     print("Server: Player " .. tostring(playerId) .. " joined local room")
     return room
   end

@@ -4,6 +4,10 @@
 
 This document outlines the networking architecture for implementing multiplayer functionality with an authoritative server model. The server will run in headless mode using LOVR's capabilities, handling physics and game state deterministically.
 
+**Current Priority**: Local game functionality is the primary focus. Network gameplay (online multiplayer) is planned for Version 2.
+
+**Key Design Principle**: The **Server module** (`src/network/server.lua`) is the unified interface for both local and networked games. Game screens (like `GameScreen`) interact directly with the Server module, which abstracts the transport layer (local or network). This ensures consistent behavior and easy transition between local and networked gameplay.
+
 ## Format Choice: MessagePack
 
 ### Why MessagePack?
@@ -161,11 +165,13 @@ This architecture provides:
   - Both implement: `send()`, `broadcast()`, `onReceive()`, `disconnect()`
 
 - **Server** (`src/network/server.lua`):
+  - **Unified interface** for both local and networked games
   - Coordinates GameManager and Transport
   - Handles client connections/disconnections
   - Routes messages between transport and game manager
   - Broadcasts state updates to clients
   - Works identically whether using local or network transport
+  - Provides API: `registerClient()`, `sendToServer()`, `createLocalRoom()`, `joinLocalRoom()`, etc.
 
 **Server responsibilities**:
   - Run physics simulation deterministically (via GameManager)
@@ -173,11 +179,13 @@ This architecture provides:
   - Validate game state
   - Broadcast state updates to clients (via Transport)
 
-**Client responsibilities**:
-  - Send input to server (via Transport)
-  - Receive and apply state updates (via Transport)
+**Client responsibilities** (GameScreen and other screens):
+  - Register as client with Server using `Server.registerClient(playerId, receiveCallback)`
+  - Send input to server via `Server.sendToServer(playerId, {type="input", input={...}})`
+  - Receive and apply state updates via registered callback
   - Render game state (with client-side prediction/interpolation)
   - Handle local UI/effects
+  - **No separate Client module needed** - screens interact directly with Server
 
 ### Transport Layer Implementation
 
@@ -187,12 +195,13 @@ This architecture provides:
 - Used automatically when running in client mode
 - Client and server run in same process
 
-**Network Transport** (for online multiplayer):
+**Network Transport** (for online multiplayer - Version 2):
 - Uses ENet for UDP networking
 - LOVR includes the `enet` plugin for UDP networking
 - Handles connection management, packet delivery, etc.
+- **Note**: Network transport is planned for Version 2. Local transport is the current priority.
 
-**Network Transport Implementation** (to be implemented):
+**Network Transport Implementation** (to be implemented in Version 2):
 ```lua
 -- src/network/transport_network.lua
 local enet = require 'enet'
@@ -222,7 +231,7 @@ function TransportNetwork.update()
 end
 ```
 
-**Client Network Setup** (to be implemented):
+**Client Network Setup** (to be implemented in Version 2):
 ```lua
 local enet = require 'enet'
 
@@ -315,9 +324,12 @@ end
 **Local Game Initialization:**
 - When user clicks "Start Local Game" from menu:
   1. Delete existing local room data if it exists
-  2. Create a fresh "local" room
-  3. Initialize game state for the local room
-  4. Connect client to local room using local transport
+  2. Create a fresh "local" room via `Server.createLocalRoom()`
+  3. Join player 1 to room via `Server.joinLocalRoom(1)`
+  4. Switch to GameScreen
+  5. GameScreen registers as client via `Server.registerClient(1, receiveCallback)`
+  6. Each local player connects as a separate simulated connection (matching networked game architecture)
+  7. GameScreen sends input and receives state updates through Server's unified API
 
 ### Headless Server Mode
 
@@ -433,14 +445,13 @@ local position = {
 
 ## Implementation Phases
 
-### Phase 1: Basic Server/Client Setup
+### Phase 1: Local Game Client Connection (Current Priority)
 
 **Goals:**
-- Set up headless server configuration
-- Implement unified server architecture with transport abstraction
-- Create GameManager for authoritative game logic
-- Implement local transport for single-player/local games
-- Establish foundation for network transport
+- Implement client connection system for local games
+- Each local player connects as a separate simulated connection through Server
+- GameScreen sends input and receives state updates via Server's unified API
+- Establish foundation for future network transport
 
 **Tasks:**
 - [x] Create server configuration (disable graphics/headset)
@@ -448,12 +459,26 @@ local position = {
 - [x] Create `src/network/transport_local.lua` - local transport (direct calls)
 - [x] Create `src/network/server.lua` - server coordinator
 - [x] Add command-line flag to run in server mode
-- [ ] Implement basic ENet network transport in `src/network/transport_network.lua`
-- [ ] Implement basic ENet client in `src/network/client.lua`
-- [ ] Test local transport (client-server communication via direct calls)
-- [ ] Test network transport (connection and message passing)
+- [ ] Implement client connection in GameScreen (register client, receive callback)
+- [ ] Implement input sending in GameScreen (send input messages to server)
+- [ ] Implement state update handling in GameScreen (receive and store game state)
+- [ ] Add cleanup/disconnect logic in GameScreen
+- [ ] Test local client-server communication flow
 
-### Phase 2: State Serialization with MessagePack
+### Phase 2: Network Gameplay (Version 2 - Future)
+
+**Goals:**
+- Implement network transport for online multiplayer
+- Add ENet UDP networking support
+- Implement network client connection
+- Test networked gameplay
+
+**Tasks:**
+- [ ] Implement basic ENet network transport in `src/network/transport_network.lua`
+- [ ] Test network transport (connection and message passing)
+- [ ] Verify GameScreen works with network transport (no code changes needed - Server abstracts transport)
+
+### Phase 3: State Serialization with MessagePack (Version 2 - Future)
 
 **Goals:**
 - Integrate MessagePack for state serialization
@@ -470,7 +495,7 @@ local position = {
 - [ ] Add state application to client
 - [ ] Test state synchronization
 
-### Phase 3: Delta Compression Optimization
+### Phase 4: Delta Compression Optimization (Version 2 - Future)
 
 **Goals:**
 - Implement delta compression

@@ -1,6 +1,7 @@
 -- Game Manager - Authoritative game logic and physics
 -- This is the single source of truth for game state
 -- Works the same whether running locally or networked
+local rad = math.rad
 
 local GameManager = {}
 
@@ -30,12 +31,41 @@ function GameManager.initRoom(roomId)
   print("GameManager: Initialized room " .. roomId)
 end
 
+-- Initialize a player in a room (called when player joins)
+function GameManager.initPlayer(roomId, playerId)
+  local state = roomStates[roomId]
+  if not state then
+    return false
+  end
+  
+  -- Initialize player with default position and rotation
+  state.players[playerId] = {
+    id = playerId,
+    x = 0.0,
+    y = 0.0,  -- Will be set to PLATE_HEIGHT + 1 when rendering
+    z = 0.0,
+    rotation = rad(-90),  -- Rotation around Y axis in radians
+    input = {
+      moveForward = false,
+      moveBackward = false,
+      turnLeft = false,
+      turnRight = false
+    }
+  }
+  print("GameManager: Initialized player " .. tostring(playerId) .. " in room " .. roomId)
+  return true
+end
+
 -- Clean up game state for a room
 function GameManager.cleanupRoom(roomId)
   roomStates[roomId] = nil
   roomAccumulators[roomId] = nil
   print("GameManager: Cleaned up room " .. roomId)
 end
+
+-- Movement constants
+local MOVE_SPEED = 5.0  -- units per second
+local TURN_SPEED = 2.0  -- radians per second
 
 -- Step the game simulation for a specific room with fixed timestep
 function GameManager.stepRoom(roomId, dt)
@@ -50,7 +80,43 @@ function GameManager.stepRoom(roomId, dt)
   -- Run physics in fixed timestep increments
   while accumulator >= FIXED_DT do
     state.tick = state.tick + 1
-    -- TODO: Run physics simulation for this room
+    
+    -- Update player positions based on input
+    for playerId, player in pairs(state.players) do
+      local input = player.input
+      
+      -- Handle rotation
+      -- Note: LOVR uses right-hand rule convention:
+      --   Positive rotation = counter-clockwise (left turn) when viewed from above
+      --   Negative rotation = clockwise (right turn) when viewed from above
+      if input.turnLeft then
+        player.rotation = player.rotation + TURN_SPEED * FIXED_DT
+      end
+      if input.turnRight then
+        player.rotation = player.rotation - TURN_SPEED * FIXED_DT
+      end
+      
+      -- Handle movement (forward/backward in direction of rotation)
+      -- Note: Negate rotation to convert orientation angle to movement direction vector.
+      -- The rotation value represents turn amount (positive = left, negative = right),
+      -- but the standard sin/cos formula for forward direction needs the sign inverted.
+      local moveX = 0.0
+      local moveZ = 0.0
+      local rot = -player.rotation  -- Negate rotation for movement calculation
+      
+      if input.moveForward then
+        moveX = moveX + math.sin(rot) * MOVE_SPEED * FIXED_DT
+        moveZ = moveZ - math.cos(rot) * MOVE_SPEED * FIXED_DT
+      end
+      if input.moveBackward then
+        moveX = moveX - math.sin(rot) * MOVE_SPEED * FIXED_DT
+        moveZ = moveZ + math.cos(rot) * MOVE_SPEED * FIXED_DT
+      end
+      
+      player.x = player.x + moveX
+      player.z = player.z + moveZ
+    end
+    
     -- TODO: Update game entities in this room
     -- TODO: Process game logic for this room
     accumulator = accumulator - FIXED_DT
@@ -76,8 +142,22 @@ function GameManager.applyInput(roomId, playerId, input)
     return false
   end
   
-  -- TODO: Validate and apply player input
-  -- TODO: Update player state based on input
+  -- Initialize player if they don't exist
+  if not state.players[playerId] then
+    GameManager.initPlayer(roomId, playerId)
+  end
+  
+  local player = state.players[playerId]
+  if not player then
+    return false
+  end
+  
+  -- Update player input state
+  player.input.moveForward = input.moveForward or false
+  player.input.moveBackward = input.moveBackward or false
+  player.input.turnLeft = input.turnLeft or false
+  player.input.turnRight = input.turnRight or false
+  
   return true
 end
 
