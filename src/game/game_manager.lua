@@ -38,13 +38,18 @@ function GameManager.initPlayer(roomId, playerId)
     return false
   end
   
+  -- Calculate starting position based on player ID to avoid overlap
+  -- Player 1 starts at origin, player 2 starts offset
+  local startX = (playerId - 1) * 5.0  -- Offset by 5 units per player
+  local startZ = 0.0
+  
   -- Initialize player with default position and rotation
   state.players[playerId] = {
     id = playerId,
-    x = 0.0,
+    x = startX,
     y = 0.0,  -- Will be set to PLATE_HEIGHT + 1 when rendering
-    z = 0.0,
-    rotation = rad(-90),  -- Rotation around Y axis in radians
+    z = startZ,
+    rotation = 0.0,  -- Rotation around Y axis in radians
     input = {
       moveForward = false,
       moveBackward = false,
@@ -52,7 +57,7 @@ function GameManager.initPlayer(roomId, playerId)
       turnRight = false
     }
   }
-  print("GameManager: Initialized player " .. tostring(playerId) .. " in room " .. roomId)
+  print("GameManager: Initialized player " .. tostring(playerId) .. " in room " .. roomId .. " at (" .. startX .. ", " .. startZ .. ")")
   return true
 end
 

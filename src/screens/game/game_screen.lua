@@ -1,5 +1,6 @@
 local GameScreen = {}
 local PauseMenu = require("src.screens.game.pause_menu")
+local PlayerInputManager = require("src.screens.game.player_input_manager")
 
 -- localize functions and constants that are used in this file (don't add things that aren't used in this file)
 -- localized functions
@@ -49,9 +50,9 @@ local lighting_shader = nil
 
 -- Server connection
 local Server = nil
-local playerId = 1  -- Local player ID
 local roomId = "local"
 local gameState = nil  -- Current game state from server
+local playerCallbacks = {}  -- playerId -> callback function
 
 function GameScreen.init()
   -- Set sky blue background
@@ -74,16 +75,25 @@ function GameScreen.init()
   -- Initialize pause menu
   PauseMenu.init()
   
-  -- Register as client with server
+  -- Initialize player input manager
+  PlayerInputManager.init()
+  
+  -- Register player 1 automatically with WASD controller (they're already in the room from menu)
   Server = require("src.network.server")
   if Server and Server.isInitialized then
-    -- Register client with receive callback
-    Server.registerClient(playerId, function(data)
+    -- Assign WASD controller to player 1
+    local player1Id = 1
+    PlayerInputManager.assignController("keyboard_wasd", player1Id)
+    
+    -- Register player 1 as client
+    local callback1 = function(data)
       if data.type == "state_update" and data.roomId == roomId then
         gameState = data.state
       end
-    end)
-    print("GameScreen: Registered as client " .. tostring(playerId))
+    end
+    Server.registerClient(player1Id, callback1)
+    playerCallbacks[player1Id] = callback1
+    print("GameScreen: Registered player 1 with WASD controller")
   else
     print("GameScreen: WARNING - Server not initialized")
   end
@@ -96,20 +106,44 @@ function GameScreen.update(dt)
     return
   end
   
-  -- Track keyboard input and send to server
   if Server and Server.isInitialized then
-    local input = {
-      moveForward = lovr.system.isKeyDown("w"),
-      moveBackward = lovr.system.isKeyDown("s"),
-      turnLeft = lovr.system.isKeyDown("a"),
-      turnRight = lovr.system.isKeyDown("d")
-    }
+    -- Check if any controller wants to join (pressed any of their keys)
+    local joiningControllerId = PlayerInputManager.checkControllerJoin()
+    if joiningControllerId then
+      -- Get the next available player ID
+      local nextPlayerId = PlayerInputManager.getNextAvailablePlayerId(4)
+      if nextPlayerId then
+        -- Join the player to the room
+        Server.joinLocalRoom(nextPlayerId)
+        
+        -- Assign the controller to this player
+        PlayerInputManager.assignController(joiningControllerId, nextPlayerId)
+        
+        -- Register the player as client
+        local callback = function(data)
+          if data.type == "state_update" and data.roomId == roomId then
+            gameState = data.state
+          end
+        end
+        Server.registerClient(nextPlayerId, callback)
+        playerCallbacks[nextPlayerId] = callback
+        print("GameScreen: Controller " .. joiningControllerId .. " joined as player " .. tostring(nextPlayerId))
+      else
+        print("GameScreen: All player slots are full")
+      end
+    end
     
-    -- Send input to server
-    Server.sendToServer(playerId, {
-      type = "input",
-      input = input
-    })
+    -- Send input for all active players
+    local activePlayers = PlayerInputManager.getActivePlayers()
+    for _, playerId in ipairs(activePlayers) do
+      local input = PlayerInputManager.getPlayerInput(playerId)
+      if input then
+        Server.sendToServer(playerId, {
+          type = "input",
+          input = input
+        })
+      end
+    end
   end
   
   -- Camera position will be calculated in draw() based on viewport
@@ -204,24 +238,19 @@ function GameScreen.draw(pass)
     end
   end
   
-  -- Draw player tank at position from game state
+  -- Draw all player tanks from game state
   pass:setColor(1, 1, 1)
   
-  -- Get player position from game state
-  local tank_x = 0.0
-  local tank_y = PLATE_HEIGHT + 1
-  local tank_z = 0.0
-  local tank_rotation_y = rad(0)
-  
-  if gameState and gameState.players and gameState.players[playerId] then
-    local player = gameState.players[playerId]
-    tank_x = player.x or 0.0
-    tank_z = player.z or 0.0
-    -- Combine model rotation with player rotation
-    tank_rotation_y = (player.rotation or 0.0)
+  if gameState and gameState.players then
+    for playerId, player in pairs(gameState.players) do
+      local tank_x = player.x or 0.0
+      local tank_y = PLATE_HEIGHT + 1
+      local tank_z = player.z or 0.0
+      local tank_rotation_y = player.rotation or 0.0
+      
+      pass:draw(player_tank_model, tank_x, tank_y, tank_z, 1, tank_rotation_y, 0, 1, 0)
+    end
   end
-  
-  pass:draw(player_tank_model, tank_x, tank_y, tank_z, 1, tank_rotation_y, 0, 1, 0)
   
   pass:setShader()  -- Reset to default shader for other draws
   
@@ -230,13 +259,17 @@ function GameScreen.draw(pass)
 end
 
 function GameScreen.cleanup()
-  -- Disconnect from server
+  -- Disconnect all players from server
   if Server and Server.isInitialized then
-    Server.sendToServer(playerId, {
-      type = "disconnect"
-    })
+    local activePlayers = PlayerInputManager.getActivePlayers()
+    for _, playerId in ipairs(activePlayers) do
+      Server.sendToServer(playerId, {
+        type = "disconnect"
+      })
+    end
   end
   gameState = nil
+  playerCallbacks = {}
 end
 
 function GameScreen.onKeyPressed(key, scancode, isrepeat, action)
